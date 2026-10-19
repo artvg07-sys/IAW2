@@ -1,0 +1,33 @@
+services:
+  apache-backend:
+    image: httpd:2.4
+    container_name: apache-backend
+    volumes:
+      - ./apache/01-marca-alfa.conf:/usr/local/apache2/conf/extra/01-marca-alfa.conf:ro
+      - ./apache/02-marca-beta.conf:/usr/local/apache2/conf/extra/02-marca-beta.conf:ro
+      - ./apache/marca-alfa:/var/www/html/marca-alfa:ro
+      - ./apache/marca-beta:/var/www/html/marca-beta:ro
+    command: >
+      bash -c "echo 'Include conf/extra/01-marca-alfa.conf' >> /usr/local/apache2/conf/httpd.conf &&
+               echo 'Include conf/extra/02-marca-beta.conf' >> /usr/local/apache2/conf/httpd.conf &&
+               httpd-foreground"
+    networks:
+      - nimbus-net
+
+  nginx-proxy:
+    image: nginx:latest
+    container_name: nimbus_nginx
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - apache-backend
+    networks:
+      - nimbus-net
+
+networks:
+  nimbus-net:
+    driver: bridge
