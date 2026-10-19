@@ -2,139 +2,80 @@
 
 **Portal Documental Seguro Multi-Marca**
 
-Proyecto de administración de sistemas que implementa una infraestructura web multi-marca mediante Apache, Nginx y Docker Compose, incorporando terminación TLS, proxy inverso, cabeceras de seguridad, protección de recursos y limitación de peticiones.
+Proyecto de administración de sistemas que implementa una infraestructura web multi-marca mediante Apache, Nginx y Docker Compose. Incluye terminación TLS, proxy inverso, cabeceras de seguridad, protección de recursos y limitación de peticiones.
 
 ---
 
 ## 📑 Índice
 
-- [I. Diseño y requisitos](#-i-diseño-y-requisitos)
-  - [1. Dominios ficticios elegidos](#1-dominios-ficticios-elegidos)
-  - [2. Módulo de multiprocesamiento de Apache](#2-módulo-de-multiprocesamiento-de-apache-mpm)
-- [II. Estructura del proyecto](#-ii-disposición-de-la-estructura-del-proyecto)
-- [III. Fase 1: Backend Apache Multi-Marca](#-iii-fase-1-backend-apache-multi-marca-ud2)
-  - [1. Creación de contenidos web](#1-creación-de-contenidos-web)
-  - [2. Configuración de los Virtual Hosts](#2-configuración-de-los-virtual-hosts)
-- [IV. Fase 2: Terminación TLS, Proxy Inverso y Seguridad en Nginx](#-iv-fase-2-terminación-tls-proxy-inverso-y-seguridad-en-nginx)
-  - [1. Generación del certificado TLS](#1-generación-del-certificado-tls)
-  - [2. Configuración de Nginx](#2-configuración-de-nginx)
-  - [3. Justificación de las medidas de seguridad](#3-justificación-de-las-medidas-de-seguridad)
-- [V. Despliegue y orquestación con Docker Compose](#-v-despliegue-y-orquestación-con-docker-compose)
-  - [1. Configuración de Docker Compose](#1-configuración-de-docker-compose)
-  - [2. Arranque del entorno](#2-arranque-del-entorno)
-- [VI. Pruebas de verificación y resultados](#-vi-pruebas-de-verificación-y-resultados)
-  - [1. Redirección HTTP a HTTPS](#1-verificación-de-la-redirección-http-a-https)
-  - [2. Acceso HTTPS a las marcas](#2-verificación-del-acceso-https-a-las-marcas)
-  - [3. Protección del recurso confidencial](#3-verificación-del-recurso-protegido-en-marca-beta)
-  - [4. Rate Limiting](#4-verificación-del-rate-limiting)
-- [VII. Arquitectura final](#-vii-arquitectura-final)
-- [VIII. Conclusiones](#-viii-conclusiones)
+- [I. Diseño y requisitos](#i-diseño-y-requisitos)
+- [II. Estructura del proyecto](#ii-estructura-del-proyecto)
+- [III. Backend Apache Multi-Marca](#iii-backend-apache-multi-marca)
+- [IV. Terminación TLS y seguridad en Nginx](#iv-terminación-tls-y-seguridad-en-nginx)
+- [V. Despliegue con Docker Compose](#v-despliegue-con-docker-compose)
+- [VI. Pruebas de verificación](#vi-pruebas-de-verificación)
+- [VII. Arquitectura final](#vii-arquitectura-final)
+- [VIII. Conclusiones](#viii-conclusiones)
 
 ---
 
-# 🏗️ I. Diseño y requisitos
+## 🏗️ I. Diseño y requisitos
 
-## 1. Dominios ficticios elegidos
+### 1. Dominios elegidos
 
-Para el desarrollo del proyecto NimbusDocs se han definido dos dominios ficticios, diferenciando claramente el portal público del portal interno.
-
-| Dominio | Tipo de portal | Finalidad |
+| Dominio | Tipo | Finalidad |
 |---|---|---|
-| `alfa.nimbus-lab.local` | Marca pública | Portal técnico destinado a la publicación de documentación accesible a los usuarios. |
-| `beta.nimbus-lab.local` | Marca privada | Portal interno destinado a documentación sensible y recursos de acceso restringido. |
+| `alfa.nimbus-lab.local` | Público | Portal técnico con documentación accesible. |
+| `beta.nimbus-lab.local` | Interno | Portal con documentación y recursos restringidos. |
 
-### Justificación de la elección
+Esta separación permite simular una infraestructura empresarial en la que varias marcas comparten una plataforma, pero mantienen contenidos independientes.
 
-Se han seleccionado estos nombres para mantener una diferenciación clara entre el entorno público y el restringido dentro de la infraestructura de NimbusDocs.
+### 2. Módulo MPM de Apache
 
-Además, se cumple la regla de originalidad del proyecto al utilizar dominios propios, evitando nombres genéricos de clase como `sitioa.iaw.local` o `app.iaw.local`.
+Se selecciona **`mpm_event`** por su gestión eficiente de conexiones persistentes y su capacidad para atender múltiples solicitudes concurrentes.
 
-Esta separación permite simular una infraestructura empresarial en la que diferentes marcas comparten una misma plataforma web, pero mantienen sus propios espacios y contenidos.
+Sus principales ventajas son:
 
-## 2. Módulo de multiprocesamiento de Apache (MPM)
+- Gestión eficiente de conexiones `Keep-Alive`.
+- Procesamiento concurrente mediante hilos.
+- Mejor aprovechamiento de los recursos del servidor.
 
-**MPM seleccionado: `mpm_event`**
-
-Se ha seleccionado el módulo `mpm_event` de Apache por su capacidad para gestionar conexiones concurrentes de forma eficiente.
-
-### Justificación técnica
-
-El MPM Event está diseñado para optimizar la gestión de conexiones persistentes, como las que utilizan `Keep-Alive`.
-
-Entre sus principales características destacan:
-
-- **Procesamiento multihilo:** permite atender múltiples solicitudes concurrentemente.
-- **Gestión eficiente de conexiones:** evita mantener ocupado un hilo de trabajo innecesariamente durante determinados periodos de inactividad de las conexiones.
-- **Optimización de recursos:** puede reducir el consumo de memoria y mejorar el aprovechamiento de los recursos del servidor frente a modelos menos eficientes.
-- **Escalabilidad:** resulta adecuado para servicios web que deben gestionar múltiples conexiones simultáneas.
-
-La elección de `mpm_event` responde al objetivo de ofrecer una infraestructura eficiente para un portal documental con varios usuarios concurrentes.
-
-> **Nota técnica:** La configuración descrita corresponde a la elección de diseño. Para utilizar realmente `mpm_event`, es necesario comprobar que está habilitado en Apache. En la imagen oficial `httpd:2.4`, la configuración de los módulos y del MPM debe verificarse expresamente.
+> **Nota técnica:** La elección de `mpm_event` debe verificarse en la configuración real de Apache. La imagen oficial `httpd:2.4` requiere comprobar qué MPM está habilitado.
 
 ---
 
-# 📁 II. Disposición de la estructura del proyecto
-
-La estructura del proyecto se organiza en dos componentes principales: Nginx, responsable de la terminación TLS y el proxy inverso, y Apache, encargado de alojar los contenidos web de las diferentes marcas.
+## 📁 II. Estructura del proyecto
 
 ```text
 nimbus-docs/
 ├── docker-compose.yml
-│
 ├── nginx/
 │   ├── default.conf
 │   └── certs/
 │       ├── nimbus.crt
 │       └── nimbus.key
-│
 └── apache/
     ├── 01-marca-alfa.conf
     ├── 02-marca-beta.conf
-    │
     ├── marca-alfa/
     │   └── index.html
-    │
     └── marca-beta/
         ├── index.html
         └── secreto-beta.txt
 ```
 
-## Descripción de los directorios y archivos
-
-| Archivo o directorio | Función |
-|---|---|
-| `docker-compose.yml` | Define los servicios, los volúmenes, los puertos y la red de Docker. |
-| `nginx/default.conf` | Configura los servidores HTTP y HTTPS, el proxy inverso y las medidas de seguridad. |
-| `nginx/certs/nimbus.crt` | Contiene el certificado TLS utilizado por Nginx. |
-| `nginx/certs/nimbus.key` | Contiene la clave privada asociada al certificado TLS. |
-| `apache/01-marca-alfa.conf` | Define el Virtual Host de la marca Alfa. |
-| `apache/02-marca-beta.conf` | Define el Virtual Host de la marca Beta y la protección del recurso confidencial. |
-| `apache/marca-alfa/` | Almacena los contenidos públicos de Alfa. |
-| `apache/marca-beta/` | Almacena los contenidos de Beta y el archivo confidencial de prueba. |
-
-Esta organización facilita el mantenimiento de la infraestructura, separa las responsabilidades de cada servicio y permite modificar las configuraciones y los contenidos sin mezclar los componentes del proyecto.
+- **Apache:** aloja los sitios web y controla el acceso a los recursos.
+- **Nginx:** gestiona HTTPS, las redirecciones y el proxy inverso.
+- **Docker Compose:** despliega y conecta los servicios.
+- **Certificados:** permiten establecer conexiones TLS.
 
 ---
 
-# 🛡️ III. Fase 1: Backend Apache Multi-Marca (UD2)
+## 🛡️ III. Backend Apache Multi-Marca
 
-## 1. Creación de contenidos web
+### 1. Creación de contenidos
 
-En esta primera fase se crean los directorios correspondientes a las dos marcas del proyecto, así como sus páginas HTML y un recurso confidencial que posteriormente será protegido mediante la configuración de Apache.
-
-### Estructura de directorios
-
-```text
-apache/
-├── marca-alfa/
-│   └── index.html
-└── marca-beta/
-    ├── index.html
-    └── secreto-beta.txt
-```
-
-### Creación de directorios y archivos
+Se crean las páginas de ambas marcas y un archivo confidencial para comprobar las restricciones de acceso.
 
 ```bash
 mkdir -p apache/marca-alfa apache/marca-beta
@@ -146,25 +87,7 @@ echo "<h1>Portal Interno Restringido - Marca Beta</h1>" > apache/marca-beta/inde
 echo "DATOS_CONFIDENCIALES_DE_MARCA_BETA=CLAVE_SECRETA_9876" > apache/marca-beta/secreto-beta.txt
 ```
 
-### Descripción de los recursos
-
-| Recurso | Descripción | Acceso |
-|---|---|---|
-| `marca-alfa/index.html` | Página principal de la marca Alfa. | Público |
-| `marca-beta/index.html` | Página principal de la marca Beta. | Público en esta fase |
-| `marca-beta/secreto-beta.txt` | Archivo con información confidencial de prueba. | Denegado mediante Apache |
-
-> **Nota:** La marca Beta representa un portal interno. En esta configuración, su página principal es accesible, pero el archivo `secreto-beta.txt` está protegido contra el acceso HTTP.
-
----
-
-## 2. Configuración de los Virtual Hosts
-
-Apache se configura para alojar dos sitios web independientes en un mismo servidor mediante **Virtual Hosts basados en el nombre de dominio**.
-
-Cada marca dispone de su propio archivo de configuración, directorio raíz y archivos de registro.
-
-### 2.1. Virtual Host de Marca Alfa
+### 2. Virtual Host de Marca Alfa
 
 **Archivo:** `apache/01-marca-alfa.conf`
 
@@ -184,18 +107,9 @@ Cada marca dispone de su propio archivo de configuración, directorio raíz y ar
 </VirtualHost>
 ```
 
-**Características principales:**
+Este Virtual Host asocia el dominio Alfa con su directorio web. `Options -Indexes` evita mostrar listados de archivos y `Require all granted` permite el acceso a sus contenidos.
 
-- `ServerName`: establece el dominio asociado a la marca Alfa.
-- `DocumentRoot`: define el directorio que contiene la página web.
-- `Options -Indexes`: impide mostrar automáticamente el listado de archivos de un directorio.
-- `Options +FollowSymLinks`: permite seguir enlaces simbólicos.
-- `AllowOverride None`: impide que los archivos `.htaccess` sobrescriban la configuración del directorio.
-- `Require all granted`: permite el acceso a los recursos del directorio.
-- `ErrorLog`: almacena los errores del sitio.
-- `CustomLog`: registra las peticiones HTTP recibidas.
-
-### 2.2. Virtual Host de Marca Beta
+### 3. Virtual Host de Marca Beta
 
 **Archivo:** `apache/02-marca-beta.conf`
 
@@ -220,284 +134,110 @@ Cada marca dispone de su propio archivo de configuración, directorio raíz y ar
 </VirtualHost>
 ```
 
-### Medida de seguridad aplicada
-
-El bloque `<Files>` deniega las peticiones HTTP dirigidas al archivo `secreto-beta.txt`.
-
-```apache
-<Files "secreto-beta.txt">
-    Require all denied
-</Files>
-```
-
-La directiva `Require all denied` impide el acceso al archivo a través de Apache, independientemente de que el usuario conozca su nombre o su ruta.
-
-Cuando se solicita el recurso, Apache devuelve:
+La directiva `Require all denied` impide acceder al archivo `secreto-beta.txt` mediante HTTP, devolviendo:
 
 ```http
 HTTP/1.1 403 Forbidden
 ```
 
-> **Importante:** Esta restricción protege el acceso HTTP al archivo. No impide que un administrador con acceso al sistema de archivos pueda leerlo directamente.
+Esta medida protege el recurso frente a solicitudes web, pero no impide que un administrador con acceso al sistema de archivos pueda leerlo.
 
 ---
 
-# 🔐 IV. Fase 2: Terminación TLS, Proxy Inverso y Seguridad en Nginx
+## 🔐 IV. Terminación TLS y seguridad en Nginx
 
-En esta fase se incorpora Nginx como punto de entrada de las conexiones web.
+### 1. Generación del certificado TLS
 
-Nginx se encarga de gestionar HTTPS, redirigir las peticiones HTTP, aplicar medidas de seguridad y reenviar las solicitudes al backend Apache.
-
-## 1. Generación del certificado TLS
-
-Se genera un certificado autofirmado para el entorno de laboratorio utilizando criptografía de curva elíptica (ECC), concretamente la curva `secp384r1`.
-
-### 1.1. Creación de la clave privada
+Se genera una clave privada EC utilizando la curva `secp384r1` y un certificado autofirmado válido durante 365 días.
 
 ```bash
 cd nginx/certs
 
 openssl ecparam -name secp384r1 -genkey -noout -out nimbus.key
-```
 
-Este comando genera una clave privada EC que se utilizará para las operaciones criptográficas de TLS.
-
-### 1.2. Generación del certificado autofirmado
-
-```bash
 openssl req -new -x509 -days 365 \
     -key nimbus.key \
     -out nimbus.crt \
     -subj "/CN=alfa.nimbus-lab.local"
-```
 
-### 1.3. Regreso al directorio raíz
-
-```bash
 cd ../..
 ```
 
-### Archivos generados
+Los archivos generados son:
 
-```text
-nginx/
-├── certs/
-│   ├── nimbus.key
-│   └── nimbus.crt
-└── default.conf
-```
+- `nimbus.key`: clave privada utilizada por Nginx.
+- `nimbus.crt`: certificado presentado a los clientes.
 
-| Archivo | Función |
-|---|---|
-| `nimbus.key` | Clave privada utilizada por Nginx para TLS. |
-| `nimbus.crt` | Certificado autofirmado presentado a los clientes. |
+> **Nota de seguridad:** El certificado es autofirmado y utiliza el CN de Alfa. Para producción, se recomienda un certificado de una autoridad de confianza con nombres SAN que incluyan ambos dominios.
 
-**Características del certificado:**
-
-- Algoritmo de clave: criptografía de curva elíptica (EC).
-- Curva: `secp384r1`.
-- Tipo: certificado autofirmado.
-- Validez solicitada: 365 días.
-- Nombre común (CN): `alfa.nimbus-lab.local`.
-
-> **Nota de seguridad:** El certificado generado es autofirmado y está pensado para un laboratorio. Los navegadores y clientes no confiarán automáticamente en él. Además, aunque el certificado incluye el CN de Alfa, la configuración lo presenta también al acceder a Beta. Para un despliegue real, conviene utilizar nombres SAN que incluyan ambos dominios y un certificado emitido por una autoridad de confianza.
-
----
-
-## 2. Configuración de Nginx
+### 2. Configuración de Nginx
 
 **Archivo:** `nginx/default.conf`
-
-Nginx realiza la terminación TLS y actúa como proxy inverso hacia Apache.
-
-La configuración incluye:
-
-- Redirección HTTP a HTTPS.
-- Protocolos TLS seguros.
-- Cabeceras de seguridad HTTP.
-- Reenvío de cabeceras al backend.
-- Limitación de la tasa de peticiones mediante Rate Limiting.
-
-### Configuración completa
 
 ```nginx
 # Límite de peticiones: 5 solicitudes por segundo por IP
 limit_req_zone $binary_remote_addr zone=nimbus_limit:10m rate=5r/s;
 
-# ==========================================================
-# SERVIDOR HTTP: REDIRECCIÓN A HTTPS
-# ==========================================================
-
+# Servidor HTTP: redirección a HTTPS
 server {
     listen 80;
-
     server_name alfa.nimbus-lab.local beta.nimbus-lab.local;
 
-    # Redirección permanente de HTTP a HTTPS
-    return 301 https://$host$request_uri;
+    # Puerto HTTPS publicado por Docker en el equipo anfitrión
+    return 301 https://$host:8443$request_uri;
 }
 
-# ==========================================================
-# SERVIDOR HTTPS: PROXY INVERSO
-# ==========================================================
-
+# Servidor HTTPS: proxy inverso
 server {
     listen 443 ssl;
-
     server_name alfa.nimbus-lab.local beta.nimbus-lab.local;
 
-    # Certificado y clave privada
     ssl_certificate /etc/nginx/certs/nimbus.crt;
     ssl_certificate_key /etc/nginx/certs/nimbus.key;
 
-    # Protocolos TLS permitidos
     ssl_protocols TLSv1.2 TLSv1.3;
-
-    # Cifrados permitidos
     ssl_ciphers HIGH:!aNULL:!MD5;
 
-    # ------------------------------------------------------
-    # CABECERAS DE SEGURIDAD
-    # ------------------------------------------------------
-
+    # Cabeceras de seguridad
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-
     add_header X-Content-Type-Options "nosniff" always;
-
     add_header X-Frame-Options "SAMEORIGIN" always;
 
-    # ------------------------------------------------------
-    # PROXY INVERSO Y RATE LIMITING
-    # ------------------------------------------------------
-
     location / {
-
-        # Limitar las peticiones por dirección IP
+        # Limitación de peticiones
         limit_req zone=nimbus_limit burst=10 nodelay;
 
-        # Reenviar las solicitudes al backend Apache
+        # Reenvío al backend Apache
         proxy_pass http://apache-backend:80;
 
-        # Preservar el dominio solicitado
         proxy_set_header Host $host;
-
-        # Transmitir la IP original del cliente
         proxy_set_header X-Real-IP $remote_addr;
-
-        # Mantener la cadena de IP de los intermediarios
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-
-        # Indicar el protocolo utilizado por el cliente
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 ```
 
-### Funcionamiento del proxy inverso
+### 3. Medidas de seguridad
 
-Cuando un usuario solicita una página web, el recorrido de la petición es el siguiente:
+| Medida | Función |
+|---|---|
+| Redirección HTTP a HTTPS | Dirige las conexiones hacia HTTPS mediante el código `301`. |
+| TLS 1.2 y TLS 1.3 | Evita utilizar versiones antiguas del protocolo. |
+| HSTS | Indica al navegador que debe utilizar HTTPS durante el periodo establecido. |
+| `X-Content-Type-Options: nosniff` | Evita determinadas interpretaciones incorrectas de los tipos MIME. |
+| `X-Frame-Options: SAMEORIGIN` | Restringe la incrustación de la página en marcos de otros orígenes. |
+| Rate Limiting | Limita la frecuencia de las solicitudes por dirección IP. |
 
-1. El cliente se conecta a Nginx.
-2. Si utiliza HTTP, Nginx devuelve una redirección permanente a HTTPS.
-3. Si utiliza HTTPS, Nginx establece la conexión TLS.
-4. Nginx comprueba las reglas de limitación de peticiones.
-5. La solicitud se reenvía a Apache mediante la red interna de Docker.
-6. Apache identifica el Virtual Host a partir de la cabecera `Host`.
-7. Apache procesa la solicitud y devuelve la respuesta.
-8. Nginx transmite la respuesta al cliente.
+La directiva `limit_req_zone` establece una tasa media de cinco peticiones por segundo por IP. `burst=10` permite gestionar ráfagas de solicitudes y `nodelay` evita retrasar las solicitudes admitidas dentro de esa ráfaga.
 
-**Ventaja principal:** Apache no necesita gestionar directamente las conexiones HTTPS de los clientes, ya que Nginx centraliza la terminación TLS.
+Por defecto, Nginx puede devolver `503 Service Temporarily Unavailable` cuando rechaza solicitudes por superar el límite.
 
 ---
 
-## 3. Justificación de las medidas de seguridad
+## 🐳 V. Despliegue con Docker Compose
 
-### 3.1. Redirección HTTP a HTTPS
-
-```nginx
-return 301 https://$host$request_uri;
-```
-
-La directiva devuelve el código HTTP `301 Moved Permanently`, indicando que el recurso debe solicitarse mediante HTTPS.
-
-Esto permite dirigir al cliente hacia una conexión cifrada.
-
-### 3.2. Restricción de protocolos TLS
-
-```nginx
-ssl_protocols TLSv1.2 TLSv1.3;
-```
-
-Se permiten únicamente TLS 1.2 y TLS 1.3, evitando el uso de versiones antiguas e inseguras del protocolo.
-
-### 3.3. Cabecera HSTS
-
-```nginx
-add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-```
-
-La cabecera `Strict-Transport-Security` indica al navegador que debe utilizar HTTPS durante el periodo especificado.
-
-| Parámetro | Función |
-|---|---|
-| `max-age=31536000` | Establece una duración de un año, expresada en segundos. |
-| `includeSubDomains` | Extiende la política a los subdominios. |
-| `always` | Solicita incluir la cabecera también en respuestas de error. |
-
-**Consideración:** HSTS debe utilizarse con cuidado en dominios reales, especialmente cuando se incluye `includeSubDomains`. En este laboratorio, los nombres terminados en `.local` y el certificado autofirmado no constituyen una configuración pública de producción.
-
-### 3.4. Protección contra MIME-Sniffing
-
-```nginx
-add_header X-Content-Type-Options "nosniff" always;
-```
-
-Esta cabecera indica al navegador que no debe intentar interpretar el contenido como un tipo MIME diferente del declarado por el servidor.
-
-Ayuda a reducir determinados riesgos relacionados con la interpretación incorrecta de los recursos.
-
-### 3.5. Protección contra Clickjacking
-
-```nginx
-add_header X-Frame-Options "SAMEORIGIN" always;
-```
-
-Esta cabecera restringe la incrustación de la página en marcos procedentes de otros orígenes.
-
-Ayuda a reducir el riesgo de *Clickjacking*, un ataque que intenta engañar al usuario para que interactúe con una página incrustada de forma engañosa.
-
-### 3.6. Rate Limiting
-
-```nginx
-limit_req_zone $binary_remote_addr zone=nimbus_limit:10m rate=5r/s;
-```
-
-Esta directiva define una zona compartida de memoria que controla la frecuencia de las peticiones en función de la dirección IP del cliente.
-
-```nginx
-limit_req zone=nimbus_limit burst=10 nodelay;
-```
-
-| Parámetro | Función |
-|---|---|
-| `rate=5r/s` | Establece una tasa media de 5 peticiones por segundo por IP. |
-| `zone=nimbus_limit:10m` | Reserva una zona de memoria de 10 MB para mantener el estado del limitador. |
-| `burst=10` | Permite una ráfaga de hasta 10 peticiones por encima de la tasa sostenida. |
-| `nodelay` | Permite procesar inmediatamente las peticiones que caben en la ráfaga, en lugar de retrasarlas. |
-
-Cuando se supera el límite admitido, Nginx rechaza las peticiones excedentes.
-
-Por defecto, el módulo `limit_req` utiliza el código HTTP `503` cuando rechaza solicitudes, aunque este comportamiento puede modificarse mediante la directiva `limit_req_status`.
-
-> **Importante:** `burst=10` no significa que el servidor acepte exactamente 15 peticiones por segundo. El limitador controla la tasa mediante un mecanismo de acumulación de solicitudes, y el resultado de una prueba depende del ritmo real de llegada de las peticiones y del estado previo del limitador.
-
----
-
-# 🐳 V. Despliegue y orquestación con Docker Compose
-
-## 1. Configuración de Docker Compose
-
-Se utiliza Docker Compose para desplegar y conectar los servicios de Apache y Nginx.
+### 1. Configuración de Docker Compose
 
 **Archivo:** `docker-compose.yml`
 
@@ -544,102 +284,51 @@ networks:
     driver: bridge
 ```
 
-### Descripción de los servicios
+### 2. Funcionamiento de los servicios
 
-| Servicio | Función | Puertos publicados |
-|---|---|---|
-| `apache-backend` | Aloja los contenidos web y gestiona los Virtual Hosts. | Ninguno |
-| `nginx-proxy` | Gestiona HTTPS, las redirecciones y el proxy inverso. | `8080:80` y `8443:443` |
-| `nimbus-net` | Permite la comunicación entre los contenedores. | No aplica |
+- **`apache-backend`:** aloja los contenidos y los Virtual Hosts.
+- **`nginx-proxy`:** gestiona las conexiones HTTP/HTTPS y reenvía las peticiones.
+- **`nimbus-net`:** permite la comunicación entre ambos contenedores.
+- **Volúmenes `:ro`:** montan los archivos en modo de solo lectura.
+- **`depends_on`:** establece el orden de inicio, pero no garantiza que Apache esté listo para recibir peticiones.
 
-### Aspectos importantes de la configuración
-
-#### Volúmenes de solo lectura
-
-Los montajes terminados en `:ro` permiten que los contenedores lean los archivos del proyecto sin modificarlos desde dentro del contenedor.
-
-#### Red interna
-
-Ambos servicios están conectados a la red `nimbus-net`, por lo que Nginx puede acceder a Apache utilizando el nombre del servicio:
+Nginx accede a Apache mediante el nombre del servicio:
 
 ```nginx
 proxy_pass http://apache-backend:80;
 ```
 
-Docker Compose proporciona resolución de nombres entre los servicios conectados a la misma red.
+Los puertos publicados son `8080` para HTTP y `8443` para HTTPS.
 
-#### Dependencia entre servicios
+### 3. Comandos de administración
 
-```yaml
-depends_on:
-  - apache-backend
-```
-
-Establece que Compose debe iniciar Apache antes que Nginx.
-
-Sin embargo, `depends_on` por sí solo no garantiza que Apache esté preparado para recibir solicitudes cuando Nginx comience a funcionar.
-
-#### Publicación de puertos
-
-```yaml
-ports:
-  - "8080:80"
-  - "8443:443"
-```
-
-Las conexiones recibidas en los puertos `8080` y `8443` del equipo anfitrión se dirigen a los puertos `80` y `443` del contenedor de Nginx, respectivamente.
-
-### Consideración técnica sobre Apache
-
-La configuración utiliza la imagen `httpd:2.4` y añade los archivos de Virtual Host al fichero principal mediante `Include`.
-
-Para que funcione correctamente, Apache debe tener habilitado el módulo de autorización necesario para `Require all granted` y `Require all denied`, además de escuchar en el puerto 80.
-
-También debe estar configurado el acceso a los directorios `/var/www/html/marca-alfa` y `/var/www/html/marca-beta`.
-
----
-
-## 2. Arranque del entorno
-
-Desde el directorio raíz del proyecto, ejecutar:
+Iniciar el entorno:
 
 ```bash
 docker compose up -d
 ```
 
-Este comando crea e inicia los servicios en segundo plano.
-
-### Comprobar el estado de los contenedores
+Comprobar los contenedores:
 
 ```bash
 docker compose ps
 ```
 
-### Consultar los registros
+Consultar los registros:
 
 ```bash
 docker compose logs
-```
-
-Para consultar únicamente los registros de Nginx:
-
-```bash
 docker compose logs nginx-proxy
-```
-
-Para consultar los registros de Apache:
-
-```bash
 docker compose logs apache-backend
 ```
 
-### Validar la configuración de Nginx
+Validar la configuración de Nginx:
 
 ```bash
 docker compose exec nginx-proxy nginx -t
 ```
 
-### Detener el entorno
+Detener el entorno:
 
 ```bash
 docker compose down
@@ -647,15 +336,13 @@ docker compose down
 
 ---
 
-# 🧪 VI. Pruebas de verificación y resultados
+## 🧪 VI. Pruebas de verificación
 
-Las pruebas permiten comprobar que la infraestructura funciona correctamente y que las medidas de seguridad implementadas producen el comportamiento esperado.
+Las siguientes pruebas comprueban las redirecciones, el acceso a los sitios, la protección del archivo confidencial y el funcionamiento del limitador.
 
-> **Requisito previo:** Los dominios `alfa.nimbus-lab.local` y `beta.nimbus-lab.local` deben resolver hacia la dirección IP del equipo anfitrión. Los ejemplos siguientes utilizan `curl --resolve` para forzar la resolución a `127.0.0.1` sin modificar el fichero `/etc/hosts`.
+Se utiliza `curl --resolve` para asociar los dominios a `127.0.0.1` sin modificar `/etc/hosts`. El parámetro `-k` permite realizar pruebas HTTPS con el certificado autofirmado.
 
-## 1. Verificación de la redirección HTTP a HTTPS
-
-### Comando
+### 1. Redirección HTTP a HTTPS
 
 ```bash
 curl -I \
@@ -663,39 +350,19 @@ curl -I \
   http://alfa.nimbus-lab.local:8080/
 ```
 
-### Resultado esperado
+**Resultado esperado:**
 
 ```http
 HTTP/1.1 301 Moved Permanently
 Server: nginx
-Location: https://alfa.nimbus-lab.local/
+Location: https://alfa.nimbus-lab.local:8443/
 ```
 
-La cabecera `Location` indica la URL de destino de la redirección.
+El código `301` indica que el cliente debe utilizar la URL HTTPS de destino.
 
-**Resultado:** La conexión HTTP se redirige a HTTPS mediante el código `301`.
+### 2. Acceso HTTPS a las marcas
 
-> **Nota:** La redirección no conserva el puerto `8443` en la configuración actual. Por tanto, la URL generada apunta al puerto HTTPS predeterminado `443`, no al puerto `8443` publicado por Docker. Para que la prueba funcione en el entorno descrito, es necesario adaptar la redirección al puerto publicado.
-
-Una alternativa para este laboratorio es utilizar:
-
-```nginx
-return 301 https://$host:8443$request_uri;
-```
-
-De esta forma, la redirección apunta al puerto HTTPS publicado en el equipo anfitrión.
-
----
-
-## 2. Verificación del acceso HTTPS a las marcas
-
-Se comprueba que Nginx recibe las peticiones HTTPS y las reenvía al Virtual Host correspondiente de Apache.
-
-El parámetro `-k` permite que `curl` continúe la conexión aunque el certificado sea autofirmado y no esté firmado por una autoridad de confianza.
-
-### 2.1. Acceso a Marca Alfa
-
-**Comando:**
+**Marca Alfa:**
 
 ```bash
 curl -k \
@@ -703,17 +370,13 @@ curl -k \
   https://alfa.nimbus-lab.local:8443/
 ```
 
-**Resultado esperado:**
+Resultado esperado:
 
 ```html
 <h1>Portal Técnico Oficial - Marca Alfa</h1>
 ```
 
-**Interpretación:** La solicitud llega a Nginx, que conserva el nombre del dominio mediante la cabecera `Host`. Apache identifica el Virtual Host de Alfa y devuelve su página principal.
-
-### 2.2. Acceso a Marca Beta
-
-**Comando:**
+**Marca Beta:**
 
 ```bash
 curl -k \
@@ -721,25 +384,15 @@ curl -k \
   https://beta.nimbus-lab.local:8443/
 ```
 
-**Resultado esperado:**
+Resultado esperado:
 
 ```html
 <h1>Portal Interno Restringido - Marca Beta</h1>
 ```
 
-**Interpretación:** Apache identifica el dominio `beta.nimbus-lab.local` y sirve el contenido de la marca Beta.
+Estas pruebas verifican que Apache identifica el Virtual Host correspondiente mediante la cabecera `Host` que Nginx conserva al reenviar las solicitudes.
 
-### Conclusión de la prueba
-
-Los resultados demuestran que una única instancia de Apache puede alojar varios sitios web independientes y que Nginx puede actuar como punto de entrada común para ambos dominios.
-
----
-
-## 3. Verificación del recurso protegido en Marca Beta
-
-Se comprueba que el archivo confidencial no puede descargarse mediante una petición HTTP.
-
-### Comando
+### 3. Protección del archivo confidencial
 
 ```bash
 curl -k -I \
@@ -747,33 +400,17 @@ curl -k -I \
   https://beta.nimbus-lab.local:8443/secreto-beta.txt
 ```
 
-### Resultado esperado
+**Resultado esperado:**
 
 ```http
 HTTP/1.1 403 Forbidden
 ```
 
-### Interpretación
+El resultado confirma que Apache deniega el acceso HTTP al recurso mediante la directiva `Require all denied`.
 
-El código `403 Forbidden` indica que el servidor ha entendido la solicitud, pero deniega el acceso al recurso.
+### 4. Rate Limiting
 
-La restricción está definida en el Virtual Host de Apache mediante:
-
-```apache
-<Files "secreto-beta.txt">
-    Require all denied
-</Files>
-```
-
-Esta prueba confirma que el recurso confidencial está protegido frente a solicitudes HTTP directas.
-
----
-
-## 4. Verificación del Rate Limiting
-
-Se realizan múltiples solicitudes consecutivas a la página principal de Alfa para comprobar el comportamiento del limitador de peticiones configurado en Nginx.
-
-### Comando
+Se realizan veinte solicitudes consecutivas para comprobar la limitación de peticiones.
 
 ```bash
 for i in {1..20}; do
@@ -784,101 +421,49 @@ for i in {1..20}; do
 done
 ```
 
-### Explicación del comando
+- **`200 OK`:** la petición se ha procesado correctamente.
+- **`503 Service Temporarily Unavailable`:** Nginx ha rechazado la petición por superar el límite configurado.
 
-| Parámetro | Función |
-|---|---|
-| `for i in {1..20}` | Ejecuta el bloque 20 veces. |
-| `curl -k` | Permite utilizar el certificado autofirmado. |
-| `-s` | Reduce la salida de `curl`. |
-| `-o /dev/null` | Descarta el contenido HTML de la respuesta. |
-| `-w "%{http_code}\n"` | Muestra el código HTTP de cada petición. |
-| `--resolve` | Asocia el dominio y el puerto a `127.0.0.1`. |
-
-### Salida observada
-
-```text
-200
-200
-200
-200
-200
-200
-200
-200
-200
-200
-200
-200
-200
-200
-200
-503
-503
-503
-503
-503
-```
-
-### Interpretación
-
-- **HTTP 200 OK:** La petición se ha procesado correctamente.
-- **HTTP 503 Service Temporarily Unavailable:** Nginx ha rechazado la petición por superar el límite configurado.
-
-Los resultados observados muestran que las primeras solicitudes se procesan correctamente, mientras que las posteriores son rechazadas por el mecanismo de limitación.
-
-> **Nota:** El resultado exacto puede variar según el ritmo de llegada de las peticiones y el estado del limitador. Si las solicitudes se ejecutan demasiado lentamente, puede que no se produzcan respuestas `503`. Para obtener resultados reproducibles, conviene ejecutar varias pruebas y consultar los registros de Nginx.
+En una prueba realizada se observaron quince respuestas `200` y cinco respuestas `503`. Los resultados pueden variar según la velocidad de las solicitudes y el estado previo del limitador.
 
 ---
 
-# 🏗️ VII. Arquitectura final
+## 🏗️ VII. Arquitectura final
 
-La infraestructura se divide en dos componentes principales:
-
-- **Nginx:** punto de entrada para las conexiones de los clientes. Gestiona HTTP, HTTPS, los certificados TLS, las cabeceras de seguridad y el Rate Limiting.
-- **Apache:** servidor web interno que aloja las marcas y aplica las reglas de acceso a los recursos.
-
-## Diagrama lógico
+La infraestructura separa la entrada de las conexiones web de la gestión de los contenidos.
 
 ```text
-                     CLIENTE WEB
-                          |
-                          |
-             +------------+------------+
-             |                         |
-             | HTTP :8080              | HTTPS :8443
-             |                         |
-             v                         v
-                  NGINX REVERSE PROXY
-                +-----------------------+
-                | Redirección HTTP/HTTPS|
-                | Terminación TLS       |
-                | Cabeceras de seguridad|
-                | Rate Limiting         |
-                +-----------------------+
-                          |
-                          |
-                    Red Docker
-                     nimbus-net
-                          |
-                          v
-                   APACHE BACKEND
-                +-----------------------+
-                | Virtual Host Alfa     |
-                | Virtual Host Beta     |
-                | Control de acceso     |
-                | Registros separados   |
-                +-----------------------+
-                     |           |
-                     |           |
-                     v           v
-                 MARCA ALFA  MARCA BETA
-                 index.html  index.html
-                             secreto-beta.txt
-                             (acceso denegado)
+                  CLIENTE WEB
+                      |
+            +---------+---------+
+            |                   |
+        HTTP :8080          HTTPS :8443
+            |                   |
+            v                   v
+             NGINX REVERSE PROXY
+             - Redirección HTTPS
+             - Terminación TLS
+             - Cabeceras de seguridad
+             - Rate Limiting
+                      |
+                Red Docker
+                 nimbus-net
+                      |
+                      v
+                APACHE BACKEND
+                - Virtual Host Alfa
+                - Virtual Host Beta
+                - Control de acceso
+                - Registros separados
+                   |          |
+                   v          v
+                MARCA ALFA  MARCA BETA
+                index.html  index.html
+                            secreto-beta.txt
+                            (acceso denegado)
 ```
 
-### Estructura final del proyecto
+### Estructura final
 
 ```text
 nimbus-docs/
@@ -890,39 +475,35 @@ nimbus-docs/
 │   └── marca-beta/
 │       ├── index.html
 │       └── secreto-beta.txt
-│
 ├── nginx/
 │   ├── certs/
 │   │   ├── nimbus.key
 │   │   └── nimbus.crt
 │   └── default.conf
-│
 ├── docker-compose.yml
 └── README.md
 ```
 
 ---
 
-# ✅ VIII. Conclusiones
+## ✅ VIII. Conclusiones
 
-En este proyecto se ha desplegado una infraestructura web multi-marca mediante Docker Compose, combinando Apache y Nginx para separar la publicación segura de los contenidos de su gestión interna.
+NimbusDocs implementa una infraestructura web multi-marca utilizando Apache, Nginx y Docker Compose.
 
-Las principales funcionalidades implementadas son:
+Las principales funcionalidades desarrolladas son:
 
-- **Alojamiento multi-marca:** dos sitios web independientes mediante Virtual Hosts de Apache.
-- **Proxy inverso:** Nginx centraliza las conexiones de los clientes y reenvía las solicitudes al backend.
-- **Terminación TLS:** se habilita HTTPS mediante un certificado autofirmado basado en criptografía de curva elíptica.
-- **Redirección HTTP a HTTPS:** se establece el mecanismo para dirigir las conexiones hacia HTTPS.
-- **Cabeceras de seguridad:** se implementan HSTS, `X-Content-Type-Options` y `X-Frame-Options`.
-- **Protección de recursos:** Apache deniega el acceso HTTP al archivo confidencial de la marca Beta.
-- **Rate Limiting:** Nginx limita la frecuencia de las peticiones por dirección IP.
-- **Contenerización:** Docker Compose permite desplegar y conectar los servicios mediante una red virtual.
+- **Virtual Hosts:** permiten alojar dos sitios web independientes.
+- **Proxy inverso:** centraliza las conexiones en Nginx.
+- **Terminación TLS:** habilita HTTPS mediante un certificado autofirmado.
+- **Redirección HTTP a HTTPS:** dirige las conexiones hacia el protocolo cifrado.
+- **Cabeceras de seguridad:** añaden medidas de protección para los clientes web.
+- **Control de acceso:** impide descargar el archivo confidencial de Beta mediante HTTP.
+- **Rate Limiting:** limita la frecuencia de las peticiones por dirección IP.
+- **Contenerización:** facilita el despliegue y la comunicación entre servicios.
 
-Las pruebas de verificación permiten comprobar el funcionamiento de los Virtual Hosts, la protección del recurso confidencial y el mecanismo de limitación de peticiones.
+Las pruebas permiten verificar el funcionamiento de los Virtual Hosts, el acceso HTTPS, la protección del recurso confidencial y la limitación de peticiones.
 
-Como posibles mejoras para un entorno de producción, se propone incorporar certificados emitidos por una autoridad de confianza, configurar correctamente los nombres SAN, reforzar el control de acceso de la marca Beta y establecer comprobaciones de salud para los servicios.
-
----
+Como mejoras futuras, se propone incorporar certificados de una autoridad de confianza, configurar nombres SAN, reforzar el control de acceso al portal Beta y añadir comprobaciones de salud a los servicios.
 
 **Proyecto:** NimbusDocs — Portal Documental Seguro Multi-Marca
 
