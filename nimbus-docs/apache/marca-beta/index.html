@@ -1,1 +1,144 @@
-<h1>Portal Interno Restringido - Marca Beta</h1>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marca Beta - Portal Interno Restringido</title>
+    <style>
+        :root {
+            --primary-color: #f59e0b;
+            --primary-dark: #d97706;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #fbbf24;
+            --badge-bg: rgba(245, 158, 11, 0.1);
+            --badge-border: rgba(245, 158, 11, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 3rem 2.5rem;
+            max-width: 650px;
+            width: 100%;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            background-color: var(--badge-bg);
+            color: var(--accent);
+            border: 1px solid var(--badge-border);
+            padding: 0.35rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .card {
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid #334155;
+            padding: 1.25rem;
+            border-radius: 10px;
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            color: var(--accent);
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+        }
+
+        .card-value {
+            font-size: 0.95rem;
+            color: var(--text-main);
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: #f59e0b;
+            font-weight: 600;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background-color: #f59e0b;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #f59e0b;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <span class="badge">🔒 ÁREA RESTRINGIDA</span>
+        <h1>Portal Interno Restringido<br><span style="color: var(--accent);">Marca Beta</span></h1>
+        
+        <p>Zona confidencial para uso exclusivo del personal autorizado. Las peticiones y accesos a recursos sensibles están bajo auditoría.</p>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-title">Acceso Perimetral</div>
+                <div class="card-value">Autenticado por Nginx</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Ficheros Sensibles</div>
+                <div class="card-value">Protección Apache (HTTP 403)</div>
+            </div>
+        </div>
+
+        <div class="status">
+            <span class="dot

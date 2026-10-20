@@ -320,78 +320,67 @@ La configuración incluye:
 
 ### Configuración completa
 
-```nginx
-# Límite de peticiones: 5 solicitudes por segundo por IP
+# Límite de peticiones compartido
 limit_req_zone $binary_remote_addr zone=nimbus_limit:10m rate=5r/s;
 
-# ==========================================================
-# SERVIDOR HTTP: REDIRECCIÓN A HTTPS
-# ==========================================================
-
-server {
-    listen 80;
-
-    server_name alfa.nimbus-lab.local beta.nimbus-lab.local;
-
-    # Redirección permanente de HTTP a HTTPS
-    return 301 https://$host$request_uri;
-}
-
-# ==========================================================
-# SERVIDOR HTTPS: PROXY INVERSO
-# ==========================================================
-
+# ---------------------------------------------------------
+# MARCA ALFA (Puerto HTTPS 8443)
+# ---------------------------------------------------------
 server {
     listen 443 ssl;
+    server_name alfa.nimbus-lab.local localhost;
 
-    server_name alfa.nimbus-lab.local beta.nimbus-lab.local;
-
-    # Certificado y clave privada
     ssl_certificate /etc/nginx/certs/nimbus.crt;
     ssl_certificate_key /etc/nginx/certs/nimbus.key;
 
-    # Protocolos TLS permitidos
     ssl_protocols TLSv1.2 TLSv1.3;
-
-    # Cifrados permitidos
     ssl_ciphers HIGH:!aNULL:!MD5;
 
-    # ------------------------------------------------------
-    # CABECERAS DE SEGURIDAD
-    # ------------------------------------------------------
-
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-
     add_header X-Content-Type-Options "nosniff" always;
-
     add_header X-Frame-Options "SAMEORIGIN" always;
 
-    # ------------------------------------------------------
-    # PROXY INVERSO Y RATE LIMITING
-    # ------------------------------------------------------
-
     location / {
-
-        # Limitar las peticiones por dirección IP
         limit_req zone=nimbus_limit burst=10 nodelay;
-
-        # Reenviar las solicitudes al backend Apache
         proxy_pass http://apache-backend:80;
-
-        # Preservar el dominio solicitado
-        proxy_set_header Host $host;
-
-        # Transmitir la IP original del cliente
+        
+        # Forzamos que Apache reciba el Host de Alfa
+        proxy_set_header Host alfa.nimbus-lab.local;
         proxy_set_header X-Real-IP $remote_addr;
-
-        # Mantener la cadena de IP de los intermediarios
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-
-        # Indicar el protocolo utilizado por el cliente
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
-```
+
+# ---------------------------------------------------------
+# MARCA BETA (Puerto HTTPS 8444)
+# ---------------------------------------------------------
+server {
+    listen 444 ssl;
+    server_name beta.nimbus-lab.local localhost;
+
+    ssl_certificate /etc/nginx/certs/nimbus.crt;
+    ssl_certificate_key /etc/nginx/certs/nimbus.key;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+
+    location / {
+        limit_req zone=nimbus_limit burst=10 nodelay;
+        proxy_pass http://apache-backend:80;
+        
+        # Forzamos que Apache reciba el Host de Beta
+        proxy_set_header Host beta.nimbus-lab.local;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
 
 ### Funcionamiento del proxy inverso
 
@@ -528,6 +517,7 @@ services:
     ports:
       - "8080:80"
       - "8443:443"
+      - "8444:444"
 
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
@@ -831,6 +821,19 @@ Los resultados observados muestran que las primeras solicitudes se procesan corr
 
 ---
 
+# ¡Ya puedes entrar desde Google Chrome o Firefox!
+
+> **Nota:** Sin tocar el /etc/hosts y sin permisos de sudo, abre tu navegador y entra directamente escribiendo:
+
+    Para ver la Marca Alfa:
+    https://localhost:8443 (acepta el aviso de certificado autofirmado)
+
+    Para ver la Marca Beta:
+    https://localhost:8444 (acepta el aviso de certificado autofirmado)
+
+# ¡De esta forma tan elegante podrás navegar por las dos marcas gráficamente sin que te haga falta modificar el sistema operativo!
+
+
 # 🏗️ VII. Arquitectura final
 
 La infraestructura se divide en dos componentes principales:
@@ -927,3 +930,5 @@ Como posibles mejoras para un entorno de producción, se propone incorporar cert
 **Proyecto:** NimbusDocs — Portal Documental Seguro Multi-Marca
 
 **Tecnologías:** Apache HTTP Server · Nginx · Docker · Docker Compose · OpenSSL
+
+
