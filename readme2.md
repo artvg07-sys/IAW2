@@ -318,17 +318,13 @@ La configuración incluye:
 - Reenvío de cabeceras al backend.
 - Limitación de la tasa de peticiones mediante Rate Limiting.
 
-### Configuración completa
-
-# Límite de peticiones compartido
 limit_req_zone $binary_remote_addr zone=nimbus_limit:10m rate=5r/s;
 
-# ---------------------------------------------------------
-# MARCA ALFA (Puerto HTTPS 8443)
-# ---------------------------------------------------------
-server {
-    listen 443 ssl;
-    server_name alfa.nimbus-lab.local localhost;
+server { listen 80; server_name alfa.nimbus-lab.local beta.nimbus-lab.local localhost;
+    return 301 https://$host$request_uri;
+}
+
+server { listen 443 ssl; server_name alfa.nimbus-lab.local localhost;
 
     ssl_certificate /etc/nginx/certs/nimbus.crt;
     ssl_certificate_key /etc/nginx/certs/nimbus.key;
@@ -352,12 +348,7 @@ server {
     }
 }
 
-# ---------------------------------------------------------
-# MARCA BETA (Puerto HTTPS 8444)
-# ---------------------------------------------------------
-server {
-    listen 444 ssl;
-    server_name beta.nimbus-lab.local localhost;
+server { listen 444 ssl; server_name beta.nimbus-lab.local localhost;
 
     ssl_certificate /etc/nginx/certs/nimbus.crt;
     ssl_certificate_key /etc/nginx/certs/nimbus.key;
@@ -380,7 +371,6 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
-
 
 ### Funcionamiento del proxy inverso
 
