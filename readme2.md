@@ -308,16 +308,7 @@ nginx/
 
 **Archivo:** `nginx/default.conf`
 
-Nginx realiza la terminación TLS y actúa como proxy inverso hacia Apache.
-
-La configuración incluye:
-
-- Redirección HTTP a HTTPS.
-- Protocolos TLS seguros.
-- Cabeceras de seguridad HTTP.
-- Reenvío de cabeceras al backend.
-- Limitación de la tasa de peticiones mediante Rate Limiting.
-
+```nginx
 limit_req_zone $binary_remote_addr zone=nimbus_limit:10m rate=5r/s;
 
 server { listen 80; server_name alfa.nimbus-lab.local beta.nimbus-lab.local localhost;
@@ -325,7 +316,6 @@ server { listen 80; server_name alfa.nimbus-lab.local beta.nimbus-lab.local loca
 }
 
 server { listen 443 ssl; server_name alfa.nimbus-lab.local localhost;
-
     ssl_certificate /etc/nginx/certs/nimbus.crt;
     ssl_certificate_key /etc/nginx/certs/nimbus.key;
 
@@ -349,7 +339,6 @@ server { listen 443 ssl; server_name alfa.nimbus-lab.local localhost;
 }
 
 server { listen 444 ssl; server_name beta.nimbus-lab.local localhost;
-
     ssl_certificate /etc/nginx/certs/nimbus.crt;
     ssl_certificate_key /etc/nginx/certs/nimbus.key;
 
@@ -371,6 +360,7 @@ server { listen 444 ssl; server_name beta.nimbus-lab.local localhost;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
+```
 
 ### Funcionamiento del proxy inverso
 
