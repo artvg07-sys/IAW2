@@ -66,6 +66,17 @@ def podcasts():
 #         - /api/podcasts/abc (no es un número) también es un 404.
 
 
+# B4.1 - Consultar un podcast concreto mediante su ID
+# B4.1 - Consultar un podcast por su identificador
+@app.route("/api/podcasts/<int:id>")
+def podcast_por_id(id):
+    for podcast in leer_podcasts():
+        if podcast["id"] == id:
+            return jsonify(podcast)
+
+    abort(404)
+
+
 @app.route("/api/entrar", methods=["POST"])
 def entrar():
     # 👀 El locutor entra con la contraseña del estudio (LOCUTOR_CLAVE, en radio.env) y se lleva la «pulsera» (UD5, apartado 7).
