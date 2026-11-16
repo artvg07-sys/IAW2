@@ -78,6 +78,10 @@ def entrar():
 
 @app.route("/api/estudio")
 def estudio():
+    # B2.1 - Solo los locutores con sesion pueden entrar
+    if "locutor" not in session:
+        return jsonify({"error": "Primero, POST /api/entrar"}), 401
+
     # ✍️ B2 · El panel del estudio: solo para quien ha entrado (lleva la pulsera, es decir, «locutor» en la sesión).
     #         Sin pulsera: {"error": "Primero, POST /api/entrar"} con un 401. Ahora entra cualquiera.
     return jsonify({"locutor": session.get("locutor"), "siguiente": "Noticias del puerto, a las 13:00"})
