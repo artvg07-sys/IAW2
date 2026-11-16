@@ -12,7 +12,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)   # 👀 se fía de UN
 
 # ✍️ B2 · La llave de las sesiones (UD5, apartado 7.3). Así viene: escrita aquí, corta y conocida por todos.
 #         Que salga del entorno (SECRET_KEY, en servidor/radio.env). Y si no está, que la API no arranque.
-app.secret_key = "cambiame"
+app.secret_key = os.environ["SECRET_KEY"]
 
 
 # 👀 Datos de prueba, para el bloque B (todavía sin base de datos). En el C3 dejan de usarse.
