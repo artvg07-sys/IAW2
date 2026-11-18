@@ -18,4 +18,8 @@ GRANT SELECT ON radio.* TO 'radio_web'@'%';
 
 -- ✍️ C1.2 · root solo puede entrar desde el propio servidor de la base de datos.
 
+-- C1.2 - Eliminar el acceso remoto del administrador
+DROP USER IF EXISTS 'root'@'%';
+
+
 
