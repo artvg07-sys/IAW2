@@ -11,6 +11,11 @@ GRANT SELECT ON radio.* TO 'radio_copias'@'%';
 --          La web y la API están en OTROS ordenadores (php, app), no en el de la base de datos.
 
 
+-- C1.1 - Usuario para la web y la API
+-- Solo puede consultar datos de la base radio
+CREATE USER IF NOT EXISTS 'radio_web'@'%' IDENTIFIED BY '05404498a644e3a88b4f7997b9cb81b6c9ca88c3';
+GRANT SELECT ON radio.* TO 'radio_web'@'%';
+
 -- ✍️ C1.2 · root solo puede entrar desde el propio servidor de la base de datos.
 
 
