@@ -74,8 +74,7 @@ def podcast_por_id(id):
         if podcast["id"] == id:
             return jsonify(podcast)
 
-    abort(404)
-
+    return jsonify({"error": "No existe ese podcast"}), 404
 
 @app.route("/api/entrar", methods=["POST"])
 def entrar():
