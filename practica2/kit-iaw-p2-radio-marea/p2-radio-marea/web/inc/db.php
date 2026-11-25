@@ -24,5 +24,20 @@ function leer_env(string $fichero): array
 //         En este fichero no puede quedar escrita ninguna contraseña.
 function conectar(): PDO
 {
-    throw new RuntimeException('Sin hacer: conectar() (C2)');
+    // C2.2 - Leer los datos de conexion desde radio.env
+    $cfg = leer_env('/etc/radio/radio.env');
+
+    // Preparar la direccion de la base de datos
+    $dsn = "mysql:host={$cfg['DB_HOST']};dbname={$cfg['DB_NAME']};charset=utf8mb4";
+
+    // Conectar con MariaDB utilizando PDO
+    return new PDO(
+        $dsn,
+        $cfg['DB_USER'],
+        $cfg['DB_PASS'],
+        [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+        ]
+    );
 }
