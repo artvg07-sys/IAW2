@@ -40,7 +40,16 @@ def conectar():
 # ✍️ C3 · Los podcasts de la tabla podcasts, del más nuevo al más viejo, con id, titulo, programa y minutos.
 #         Si buscar no está vacío, solo los que lo llevan en el título (LIKE). Lo escribe el oyente: consulta preparada.
 def leer_podcasts(buscar=""):
-    return [p for p in PODCASTS_DE_PRUEBA if buscar.lower() in p["titulo"].lower()]
+    # C3.3 - Consultar los podcasts reales de MariaDB
+    with conectar() as conexion:
+        with conexion.cursor() as cursor:
+            cursor.execute(
+                "SELECT id, titulo, programa, minutos "
+                "FROM podcasts WHERE titulo LIKE %s ORDER BY fecha DESC",
+                ("%" + buscar + "%",)
+            )
+
+            return cursor.fetchall()
 
 
 @app.route("/api/salud")
