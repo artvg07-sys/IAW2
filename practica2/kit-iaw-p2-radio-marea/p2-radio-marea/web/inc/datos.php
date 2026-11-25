@@ -15,7 +15,14 @@ const PARRILLA_DE_PRUEBA = [
 //         Cada programa, un array con las claves hora, nombre y locutor (las usan index.php y parrilla.php).
 function programas(string $dia): array
 {
-    return array_values(array_filter(PARRILLA_DE_PRUEBA, fn ($p) => $p['dia'] === $dia));
+    // C3.1 - Consultar los programas reales de MariaDB
+    $st = conectar()->prepare(
+        'SELECT hora, nombre, locutor FROM programas WHERE dia = ? ORDER BY hora'
+    );
+
+    $st->execute([$dia]);
+
+    return $st->fetchAll();
 }
 
 // 👀 Para el pie de la parrilla: con qué usuario está conectada la web (o por qué no puede).
